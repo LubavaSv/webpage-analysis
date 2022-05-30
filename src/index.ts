@@ -1,7 +1,7 @@
 import express, { Express, Request, Response } from 'express';
 import bodyParser from 'body-parser';
 import dotenv from 'dotenv';
-import { getHtmlTreeFromUrl } from './pageAnalysis';
+import { getHtmlTreeFromUrl, getHtmlTreeStats } from './pageAnalysis';
 
 dotenv.config();
 
@@ -18,7 +18,8 @@ app.get('/', (req: Request, res: Response) => {
 app.get('/page-analysis', async (req: Request, res: Response) => {
   const pageUrl = req.query.url;
   if (!pageUrl) res.send('no');
-  const analysis = await getHtmlTreeFromUrl(pageUrl as string);
+  const htmlTree = await getHtmlTreeFromUrl(pageUrl as string);
+  const analysis = getHtmlTreeStats(htmlTree, {});
   res.send(analysis);
 });
 
