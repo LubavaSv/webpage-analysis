@@ -2,9 +2,17 @@ import axios from 'axios';
 import { html2json, Node } from 'html2json';
 import { HtmlStats, PageAnalysis, PathStats } from './types';
 
+const lib = {
+  getPageAnalysis,
+  getHtmlFromUrl,
+  getHtmlTreeFromString,
+  getHtmlTreeStats,
+};
+
 export async function getPageAnalysis(url: string): Promise<PageAnalysis> {
-  const htmlTree = await getHtmlTreeFromUrl(url);
-  const treeStats = getHtmlTreeStats(htmlTree);
+  const html = await lib.getHtmlFromUrl(url);
+  const htmlTree = await lib.getHtmlTreeFromString(html);
+  const treeStats = lib.getHtmlTreeStats(htmlTree);
   let mostCommonTag = '';
   const uniqueTags: string[] = [];
 
@@ -38,16 +46,21 @@ export async function getPageAnalysis(url: string): Promise<PageAnalysis> {
   };
 }
 
-export async function getHtmlTreeFromUrl(url: string): Promise<Node> {
+export async function getHtmlFromUrl(url: string): Promise<string> {
   const response = await axios.get(url);
-  // remove <!doctype html> to escape a bug of html parser
-  const html = response.data.substring(
-    response.data.indexOf('<!DOCTYPE') ? 15 : 0
-  );
-  return html2json(html);
+  return response.data;
 }
 
-export function getHtmlTreeStats(
+export async function getHtmlTreeFromString(html: string): Promise<Node> {
+  // remove <!doctype html ... > to escape a bug of html parser
+  const cutA = html.indexOf('<!');
+  const cutB = html.indexOf('>');
+  const cut = cutA != -1 ? cutB + 1 : 0;
+  const htmlRes = html.substring(cut);
+  return html2json(htmlRes);
+}
+
+function getHtmlTreeStats(
   treeNode: Node,
   currentPath: PathStats = { tagsOccurrences: {}, path: [] },
   stats: HtmlStats = { tagsOccurrences: {}, longestPaths: {} },
@@ -84,7 +97,7 @@ export function getHtmlTreeStats(
     }
 
     treeNode.child.forEach((child) => {
-      getHtmlTreeStats(child, currentPathInner, stats, nestingLevel + 1);
+      lib.getHtmlTreeStats(child, currentPathInner, stats, nestingLevel + 1);
     });
   } else if (
     currentPathInner.mostCommonTag &&
@@ -100,3 +113,5 @@ export function getHtmlTreeStats(
   }
   return stats;
 }
+
+export default lib;
